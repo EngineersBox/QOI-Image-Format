@@ -1,2 +1,2 @@
-# rust-qoi
-An implementation of Dominic Szablewski's QOI compression scheme in Rust
+# QOI Image Format
+An implementation of Dominic Szablewski's QOI image compression scheme in Rust
