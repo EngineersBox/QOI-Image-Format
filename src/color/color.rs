@@ -1,4 +1,4 @@
-#[derive(Debug,Clone)]
+#[derive(Debug,Default,Clone,Copy)]
 pub struct RGBA {
     pub r: u8,
     pub g: u8,
