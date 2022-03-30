@@ -1,25 +1,8 @@
-use crate::enum_convertable;
+use crate::structure::informational::{QOIChannels, QOIColorSpace};
 
 const QOI_MAGIC_STRING: [char; 4] = ['q', 'o', 'i', 'f'];
 
-enum_convertable!(
-    u8
-    pub enum QOIChannels {
-        DEFAULT => 0u8,
-        RGB => 3u8,
-        RGBA => 4u8,
-    }
-);
-
-enum_convertable!(
-    u8
-    pub enum QOIColorSpace {
-        DEFAULT => 2u8,
-        SRGB_ALPHA_LINEAR => 0u8,
-        ALL_LINEAR => 1u8,
-    }
-);
-
+#[derive(Debug)]
 pub struct QOIHeader {
     pub magic: [char; 4],
     pub width: u32, // Big endian

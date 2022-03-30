@@ -4,20 +4,22 @@ macro_rules! enum_convertable {
         DEFAULT => $default_value_literal:literal,
         $($(#[$value_meta:meta])? $value_name:ident => $value_literal:literal,)*
     }) => {
-        $(#[$enum_meta:meta])?
+        $(#[$enum_meta])?
         $enum_vis enum $enum_name {
             DEFAULT,
             $(#[allow(non_camel_case_types)] $(#[$value_meta])? $value_name,)+
         }
         impl From<$literal_type> for $enum_name$(<$($lt$(:$clt$(+$dlt)*)?),+>)? {
+            #[inline]
             fn from(val: $literal_type) -> Self {
-                $(if val == $value_literal {
-                    return $enum_name::$value_name;
-                })*
-                return $enum_name::DEFAULT;
+                return match val {
+                    $($value_literal => $enum_name::$value_name,)*
+                    _ => $enum_name::DEFAULT,
+                };
             }
         }
         impl Into<$literal_type> for $enum_name$(<$($lt$(:$clt$(+$dlt)*)?),+>)? {
+            #[inline]
             fn into(self) -> $literal_type {
                 match self {
                     $($enum_name::$value_name => $value_literal,)*
