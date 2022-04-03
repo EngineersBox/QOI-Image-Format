@@ -2,7 +2,7 @@ use crate::enum_convertable;
 
 enum_convertable!(u8
     #[derive(Debug)]
-    pub enum QIOOpSignatureMask {
+    pub enum QIOTagSignatureMask {
         DEFAULT => 0b11111110u8,
         RGB => 0b11111110u8,
         RGBA => 0b11111111u8,
@@ -12,4 +12,3 @@ enum_convertable!(u8
         RUN => 0b11000000u8,
     }
 );
-

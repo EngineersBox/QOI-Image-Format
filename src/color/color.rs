@@ -1,4 +1,4 @@
-#[derive(Debug,Default,Clone,Copy)]
+#[derive(Debug,Default,Eq,PartialEq,Clone,Copy)]
 pub struct RGBA {
     pub r: u8,
     pub g: u8,
@@ -7,6 +7,14 @@ pub struct RGBA {
 }
 
 impl RGBA {
+    pub fn new() -> RGBA {
+        return RGBA{
+            r: 0,
+            g: 0,
+            b: 0,
+            a: 255,
+        };
+    }
     #[inline]
     pub fn to_rgb_bytes(&self) -> [u8; 3] {
         return [self.r, self.g, self.b];

@@ -1,3 +1,4 @@
 pub mod qoi_header;
 pub mod informational;
-pub mod op;
+pub mod tag;
+pub mod qoi_image;

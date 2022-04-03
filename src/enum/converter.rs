@@ -5,7 +5,7 @@ macro_rules! enum_convertable {
         $($(#[$value_meta:meta])? $value_name:ident => $value_literal:literal,)*
     }) => {
         $(#[$enum_meta])?
-        $enum_vis enum $enum_name {
+        $enum_vis enum $enum_name$(<$($lt$(:$clt$(+$dlt)*)?),+>)? {
             DEFAULT,
             $(#[allow(non_camel_case_types)] $(#[$value_meta])? $value_name,)+
         }
