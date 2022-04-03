@@ -99,8 +99,17 @@ impl<T: Read> Decoder<T> {
             .for_each(|byte: &u8| { self.dequeue.push_back(*byte); });
         return Ok(());
     }
-    fn process_op_index(&self, tag: u8) -> Result<(), Error> {
-        todo!()
+    fn process_op_index(&mut self, tag: u8) -> Result<(), Error> {
+        let index: usize = (tag & 0b00111111u8) as usize;
+        let indexed_pixel = match &self.seen[index] {
+            Some(v) => (*v).as_ref().clone(),
+            None => return Err(Error::new(
+                ErrorKind::InvalidData,
+                format!("No pixel value found at seen index: {}", index),
+            )),
+        };
+        self.image.pixels.push(indexed_pixel);
+        return Ok(());
     }
     fn process_op_diff(&self, tag: u8) -> Result<(), Error> {
         todo!()
