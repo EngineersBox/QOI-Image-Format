@@ -14,6 +14,16 @@ const EOF_MARKER: [u8; 8] = [
     0x00u8, 0x00u8, 0x00u8, 0x01u8
 ];
 const TAG_2BIT_MASK: u8 = 0b11000000u8;
+const DIFF_RED_MASK: u8 = 0b00110000u8;
+const DIFF_GREEN_MASK: u8 = 0b00001100u8;
+const DIFF_BLUE_MASK: u8 = 0b00000011u8;
+const RUN_LENGTH_MASK: u8 = 0b00111111u8;
+
+macro_rules! bias_add {
+    ($prev:expr, $current:expr, $bias:literal) => {
+        ((std::num::Wrapping::<u8>($prev) + std::num::Wrapping::<u8>($current)) - std::num::Wrapping::<u8>($bias)).0
+    }
+}
 
 pub struct Decoder<T: Read> {
     seen: [Option<Box<RGBA>>; QIO_SEEN_WINDOW],
@@ -111,14 +121,25 @@ impl<T: Read> Decoder<T> {
         self.image.pixels.push(indexed_pixel);
         return Ok(());
     }
-    fn process_op_diff(&self, tag: u8) -> Result<(), Error> {
+    fn process_op_diff(&mut self, tag: u8) -> Result<(), Error> {
+        let last_pixel: RGBA = self.last_pixel();
+        self.image.pixels.push(RGBA{
+            r: bias_add!(last_pixel.r, tag & DIFF_RED_MASK, 2),
+            g: bias_add!(last_pixel.g, tag & DIFF_GREEN_MASK, 2),
+            b: bias_add!(last_pixel.b, tag & DIFF_BLUE_MASK, 2),
+            a: last_pixel.a,
+        });
+        return Ok(());
+    }
+    fn process_op_luma(&mut self, reader: &mut BufReader<T>, tag: u8) -> Result<(), Error> {
         todo!()
     }
-    fn process_op_luma(&self, reader: &mut BufReader<T>, tag: u8) -> Result<(), Error> {
-        todo!()
-    }
-    fn process_op_run(&self, tag: u8) -> Result<(), Error> {
-        todo!()
+    fn process_op_run(&mut self, tag: u8) -> Result<(), Error> {
+        let last_pixel: RGBA = self.last_pixel();
+        for _ in 0..((tag & RUN_LENGTH_MASK) + 1) {
+            self.image.pixels.push(last_pixel.clone());
+        }
+        return Ok(());
     }
     fn init_dequeue(&mut self, reader: &mut BufReader<T>) -> Result<(), Error> {
         self.dequeue.clear();
