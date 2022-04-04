@@ -18,12 +18,9 @@ const DIFF_RED_MASK: u8 = 0b00110000u8;
 const DIFF_GREEN_MASK: u8 = 0b00001100u8;
 const DIFF_BLUE_MASK: u8 = 0b00000011u8;
 const RUN_LENGTH_MASK: u8 = 0b00111111u8;
-
-macro_rules! bias_add {
-    ($prev:expr, $current:expr, $bias:literal) => {
-        ((std::num::Wrapping::<u8>($prev) + std::num::Wrapping::<u8>($current)) - std::num::Wrapping::<u8>($bias)).0
-    }
-}
+const LUMA_GREEN_DIFF_MASK: u8 = 0b00111111u8;
+const LUMA_DR_DG_MASK: u8 = 0b11110000u8;
+const LUMA_DB_DG_MASK: u8 = 0b00001111u8;
 
 pub struct Decoder<T: Read> {
     seen: [Option<Box<RGBA>>; QIO_SEEN_WINDOW],
@@ -124,15 +121,35 @@ impl<T: Read> Decoder<T> {
     fn process_op_diff(&mut self, tag: u8) -> Result<(), Error> {
         let last_pixel: RGBA = self.last_pixel();
         self.image.pixels.push(RGBA{
-            r: bias_add!(last_pixel.r, tag & DIFF_RED_MASK, 2),
-            g: bias_add!(last_pixel.g, tag & DIFF_GREEN_MASK, 2),
-            b: bias_add!(last_pixel.b, tag & DIFF_BLUE_MASK, 2),
+            r: last_pixel.r.wrapping_add((tag & DIFF_RED_MASK).wrapping_sub(2)),
+            g: last_pixel.g.wrapping_add((tag & DIFF_GREEN_MASK).wrapping_sub(2)),
+            b: last_pixel.b.wrapping_add((tag & DIFF_BLUE_MASK).wrapping_sub(2)),
             a: last_pixel.a,
         });
         return Ok(());
     }
     fn process_op_luma(&mut self, reader: &mut BufReader<T>, tag: u8) -> Result<(), Error> {
-        todo!()
+        let last_pixel: RGBA = self.last_pixel();
+        let unbiased_diff_green: u8 = (tag & LUMA_GREEN_DIFF_MASK).wrapping_sub(32);
+        let difference_byte: u8 = match self.dequeue.get(0) {
+            Some(v) => *v,
+            None => return Err(Error::new(
+                ErrorKind::InvalidData,
+                "Expected to read RGBA byte, but attempted to access out of window range at index: 0"
+            )),
+        };
+        self.image.pixels.push(RGBA {
+            r: last_pixel.r.wrapping_add(((difference_byte & LUMA_DR_DG_MASK) >> 4).wrapping_sub(8).wrapping_add(unbiased_diff_green)),
+            g: last_pixel.g.wrapping_add((tag & LUMA_GREEN_DIFF_MASK).wrapping_sub(32)),
+            b: last_pixel.b.wrapping_add((difference_byte & LUMA_DB_DG_MASK).wrapping_sub(8).wrapping_add(unbiased_diff_green)),
+            a: last_pixel.a,
+        });
+
+        // Move past difference byte
+        let mut next_byte: [u8; 1] = [0; 1];
+        reader.read(&mut next_byte)?;
+        self.dequeue.push_back(next_byte[0]);
+        return Ok(());
     }
     fn process_op_run(&mut self, tag: u8) -> Result<(), Error> {
         let last_pixel: RGBA = self.last_pixel();
